@@ -118,6 +118,12 @@ void            release(struct spinlock*);
 void            push_off(void);
 void            pop_off(void);
 
+// petersonlock.c
+int             peterson_create(void);
+int             peterson_acquire(int lock_id, int role);
+int             peterson_release(int lock_id, int role);
+int             peterson_destroy(int lock_id);
+
 // sleeplock.c
 void            acquiresleep(struct sleeplock*);
 void            releasesleep(struct sleeplock*);

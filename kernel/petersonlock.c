@@ -1,0 +1,90 @@
+// Mutual exclusion peterson locks.
+
+#include "types.h"
+#include "param.h"
+#include "memlayout.h"
+#include "petersonlock.h"
+#include "riscv.h"
+#include "spinlock.h"
+#include "proc.h"
+#include "defs.h"
+
+struct petersonlock plocks[NPLOCKS];
+int plock_index = 0;
+int plock_count = 0;
+
+int
+peterson_create(void)
+{
+    int i_to_return = -1;
+    if (plock_count >= NPLOCKS) {
+        return -1; // No more locks available
+    }
+    while(plocks[plock_index].initialized) {
+        plock_index = (plock_index + 1) % NPLOCKS;
+    }
+    plocks[plock_index].turn = 0;
+    plocks[plock_index].b[0] = 0;
+    plocks[plock_index].b[1] = 0;
+    plocks[plock_index].initialized = 1;
+
+    i_to_return = plock_index;
+    plock_index = (plock_index + 1) % NPLOCKS;
+    plock_count++;
+    return i_to_return;
+}
+
+int
+peterson_acquire(int lock_id, int role)
+{
+    __sync_synchronize();
+    if(lock_id < 0 || 
+       lock_id >= NPLOCKS || 
+       !plocks[lock_id].initialized ||
+       (role != 0 && role != 1)) {
+        return -1; // Invalid lock ID
+    }
+    if(plocks[lock_id].b[role] == 1) {
+        panic("pacquire"); // Lock already held by this role
+    }
+    __sync_lock_test_and_set(&plocks[lock_id].b[role], 1);
+    __sync_lock_test_and_set(&plocks[lock_id].turn, role);
+    __sync_synchronize();
+
+    while(plocks[lock_id].b[1-role] && plocks[lock_id].turn == role) {
+        yield();
+    }
+    return 0;
+}
+
+int
+peterson_release(int lock_id, int role)
+{
+    __sync_synchronize();
+    if(lock_id < 0 || 
+       lock_id >= NPLOCKS || 
+       !plocks[lock_id].initialized ||
+       (role != 0 && role != 1)) {
+        return -1; // Invalid lock ID
+    }
+    if(plocks[lock_id].b[role] == 0) {
+        panic("prelease"); // Lock not held by this role
+    }
+    __sync_lock_test_and_set(&plocks[lock_id].b[role], 0);
+    __sync_synchronize();
+    return 0; 
+}
+
+int
+peterson_destroy(int lock_id)
+{
+    __sync_synchronize();
+    if(lock_id < 0 || 
+       lock_id >= NPLOCKS || 
+       !plocks[lock_id].initialized) {
+        return -1; // Invalid lock ID
+    }
+    plocks[lock_id].initialized = 0;
+    plock_count--;
+    return 0;
+}

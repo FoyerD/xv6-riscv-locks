@@ -39,3 +39,9 @@ void free(void*);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+
+// petersonlock.c
+int peterson_create(void);
+int peterson_acquire(int lock_id, int role);
+int peterson_release(int lock_id, int role);
+int peterson_destroy(int lock_id);
