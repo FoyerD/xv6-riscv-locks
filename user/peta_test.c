@@ -29,8 +29,8 @@ int main(void){
         wait(0);
         printf("Parent process destroying lock\n");
         if (peterson_destroy(lock_id) < 0) {
-        printf("Failed to destroy lock\n");
-        exit(1);
+            printf("Failed to destroy lock\n");
+            exit(1);
         }
     }
     exit(0);
